@@ -33,6 +33,7 @@ bot.start((ctx) => {
         '\n/status — Узнать наличие в данный момент.\n' +
         '\n/subscribe — Подписаться на получение уведомлений. Сообщения будут приходить один раз в десять минут.\n'
     );
+    ctx.replyWithPhoto({ url: 'https://ohuel.ru/lg/monitors.jpg' });
 })
 
 bot.hears('/status', ctx => {
