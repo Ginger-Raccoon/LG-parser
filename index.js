@@ -1,62 +1,62 @@
 require('dotenv').config();
 const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
 const { Telegraf } = require('telegraf');
+const { serverLogger, monitorsLogger } = require('./utils/logger');
+const { getMonitorStatus } = require('./utils/parser');
 
+const {
+    PORT = 3000,
+    BIG_MONITOR_URL,
+    SMALL_MONITOR_URL,
+    BOT_TOKEN
+} = process.env;
 
-const { PORT = 3000 } = process.env;
+if (BOT_TOKEN === undefined) {
+    throw new Error('BOT_TOKEN must be provided!');
+}
+
 const app = express();
 
-const { BIG_MONITOR_URL, SMALL_MONITOR_URL, BOT_TOKEN } = process.env;
-
 app.listen(PORT, () => {
-  console.log(`App listening on port ${PORT}`)
-}) 
-//telegram
-const bot = new Telegraf(BOT_TOKEN)
+    // server status && errors logger
+    serverLogger.info(`Server Started in port : ${PORT}!`);
+})
+// telegram
+const bot = new Telegraf(BOT_TOKEN);
 
 bot.start((ctx) => {
-  ctx.replyWithHTML(
-    'Привет! Я всего лишь хотел сказать что\n'+
-    '<b>LG.ohuel</b>\n'+
-    'Выполнение запроса раз в 10 минут',
+    ctx.replyWithHTML(
+        '\n🥳 Привет! Этот бот создан с целью упростить жизнь тем, кто хочет приобрести очень редкие мониторы LG Ultrafine 5k || 4k.\n' +
+        '\n<b>Как работает.</b>\n' +
+        '\nОдин раз в десять минут бот заходит на сайт фирменного магазина rushop.lg.com, получает информацию о наличии моделей 24MD4KL-B.AEU, 27MD5KL-B.AEU и присылает актуальный статус в телеграм.\n' +
+        '\n<b>Команды:</b>\n' +
+        '\n/status — Узнать наличие в данный момент.\n' +
+        '\n/subscribe — Подписаться на получение уведомлений. Сообщения будут приходить один раз в десять минут.\n'
     );
-    // Первый вызов
-    async function firstCall() {
-      ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL))
-      ctx.replyWithHTML( await getMonitorStatus(SMALL_MONITOR_URL))
-    }
-    firstCall()
-    // Повторные
-    setInterval( async function(){
-      ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL))
-      ctx.replyWithHTML( await getMonitorStatus(SMALL_MONITOR_URL))
-    }
-    , 600000)
+    ctx.replyWithPhoto({ url: 'https://ohuel.ru/lg/monitors.jpg' });
 })
 
-//запуск бота
-bot.launch()
+bot.hears('/status', ctx => {
+    ctx.reply('Получаю данные...')
+    async function checkStatus() {
+        ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL)).then(res => monitorsLogger.info(`${res.text}, user: ${res.chat.username}`));
+        ctx.replyWithHTML(await getMonitorStatus(SMALL_MONITOR_URL)).then(res => monitorsLogger.info(`${res.text}, user: ${res.chat.username}`));
+    }
 
+    checkStatus();
+})
 
-//parser
-async function getMonitorStatus(URL) {
-  return await axios.get(URL)
-    .then((res) => {
-      const $ = cheerio.load(res.data)
-      const model = $('div.article').find('strong').text()
-      const avaiable = $('div.article').find('span:last-child').text()
-      //date
-      const today = new Date();
-      const year = today.getFullYear() + '-' +
-        String((today.getMonth() + 1)).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-      const time = today.getHours() + ':' +
-        String(today.getMinutes()).padStart(2, '0');
-      //telegram
-      const msg = `${year}, ${time} LG UltraFine <b>${model}</b> — ${avaiable}`
-      return msg
-    })
-    .catch(err => console.log(err))
-}
+bot.hears('/subscribe', ctx => {
+    ctx.reply('Вы подписались на отслеживание мониторов. Уведомления об актуальном статусе будут приходить один раз в десять минут.');
+    setInterval(async function () {
+        ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL)).then(res => monitorsLogger.info(`${res.text}, user: ${res.chat.username}`));
+        ctx.replyWithHTML(await getMonitorStatus(SMALL_MONITOR_URL)).then(res => monitorsLogger.info(`${res.text}, user: ${res.chat.username}`));
+    }, 600000)
+})
+
+// Запуск бота
+bot.launch();
+
+// Остановка при выключении сервера
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
