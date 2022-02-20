@@ -36,7 +36,17 @@ const monitorsLogger = createLogger({
     ],
 });
 
+const historyLogger = createLogger({
+    transports: [
+        new transports.File({
+            filename: 'logs/history.log',
+            format: monitorsLogsOutputFormat,
+        }),
+    ],
+});
+
 module.exports = {
     serverLogger: serverLogger,
     monitorsLogger: monitorsLogger,
+    historyLogger: historyLogger
 };
