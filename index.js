@@ -72,7 +72,7 @@ bot.hears('/subscribe', ctx => {
             }
             monitorsLogger.info(`${res.text}, user: ${res.chat.username}`)
         });
-    }, 20000)
+    }, 600000)
 })
 
 bot.hears('/history', ctx => {
