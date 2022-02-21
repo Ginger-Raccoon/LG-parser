@@ -41,11 +41,12 @@ bot.start((ctx) => {
         '\n<b>Команды:</b>\n' +
         '\n/status — Узнать наличие в данный момент.\n' +
         '\n/subscribe — Подписаться на получение уведомлений. Сообщения будут приходить один раз в десять минут.\n' +
-        '\n/history — история запросов. <b>ВНИМАНИЕ!</b> Вы получите всю историю запросов (144 запроса в сутки), начиная с 20 февраля 2022 года, по настоящее время.\n'
+        '\n/lastinstock — Узнать, когда мониторы были в продаже в последний раз.'
     );
     ctx.replyWithPhoto('https://ohuel.ru/lg/monitors.jpg');
 })
 
+// разовый запрос статуса мониторов
 bot.hears('/status', ctx => {
     ctx.reply('Получаю данные...')
 
@@ -57,30 +58,33 @@ bot.hears('/status', ctx => {
     checkStatus();
 })
 
+// подписка на десятиминутные уведомления
 bot.hears('/subscribe', ctx => {
     ctx.reply('Вы подписались на отслеживание мониторов. Уведомления об актуальном статусе будут приходить один раз в десять минут.');
     setInterval(async function () {
-        ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL)).then(res => monitorsLogger.info(`${res.text}, user: ${res.chat.username}`));
-        ctx.replyWithHTML(await getMonitorStatus(SMALL_MONITOR_URL)).then(res => monitorsLogger.info(`${res.text}, user: ${res.chat.username}`));
+        ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL)).then(res => {
+            monitorsLogger.info(`${res.text}, user: ${res.chat.username}`)
+        });
+        ctx.replyWithHTML(await getMonitorStatus(SMALL_MONITOR_URL)).then(res => {
+            monitorsLogger.info(`${res.text}, user: ${res.chat.username}`)
+        });
     }, 600000)
 })
 
-bot.hears('/history', ctx => {
+// общий поиск наличия в логах
+bot.hears('/onsale', ctx => {
     try {
-        const telegramMessageMaxSize = 4012; // ~ 60 строк файла логов
         const logs = fs.readFileSync('./logs/history.log', 'utf8');
-        const sliced = logs.length / telegramMessageMaxSize;
-        let start = 0;
-        let end = telegramMessageMaxSize;
 
-        for (let i = 0; i < sliced; i++) {
-            let messageToSend = logs.slice(start, end);
-            start = start + telegramMessageMaxSize;
-            end = end + telegramMessageMaxSize;
-            ctx.reply(messageToSend);
+        if (!String(logs).toLowerCase().includes('в наличии')) {
+            ctx.replyWithHTML('Мониторы в продажу не поступали. Запись логов ведётся с <b>2022-02-20, 14:12</b>')
+        } else {
+            const inStock = /^.*наличии.*$/img;
+            const response = logs.match(inStock);
+            ctx.reply(response.toString().split(',').join('\n'));
         }
     } catch (err) {
-        ctx.reply(`Ошибка чтения файла логов: ${err}`)
+        ctx.reply(`Ошибка чтения файла логов: ${err}`);
     }
 });
 
