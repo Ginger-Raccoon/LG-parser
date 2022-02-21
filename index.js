@@ -63,22 +63,16 @@ bot.hears('/subscribe', ctx => {
     ctx.reply('Вы подписались на отслеживание мониторов. Уведомления об актуальном статусе будут приходить один раз в десять минут.');
     setInterval(async function () {
         ctx.replyWithHTML(await getMonitorStatus(BIG_MONITOR_URL)).then(res => {
-            if (res.text.toLowerCase().includes('в наличии')) {
-                ctx.reply(`[@${res.chat.username}](tg://user?id=${res.chat.id})`, { parse_mode: 'Markdown' });
-            }
             monitorsLogger.info(`${res.text}, user: ${res.chat.username}`)
         });
         ctx.replyWithHTML(await getMonitorStatus(SMALL_MONITOR_URL)).then(res => {
-            if (res.text.toLowerCase().includes('в наличии')) {
-                ctx.reply(`[@${res.chat.username}](tg://user?id=${res.chat.id})`, { parse_mode: 'Markdown' });
-            }
             monitorsLogger.info(`${res.text}, user: ${res.chat.username}`)
         });
     }, 600000)
 })
 
 // общий поиск наличия в логах
-bot.hears('/lastinstock', ctx => {
+bot.hears('/onsale', ctx => {
     try {
         const logs = fs.readFileSync('./logs/history.log', 'utf8');
 
