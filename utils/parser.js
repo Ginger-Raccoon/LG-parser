@@ -15,7 +15,7 @@ async function getMonitorStatus(URL) {
             const time = today.getHours() + ':' +
                 String(today.getMinutes()).padStart(2, '0');
             // telegram
-            return `${year}, ${time} LG UltraFine <b>${model}</b> — ${available}`;
+            return `${year} ${time} LG UltraFine <b>${model}</b> — ${available}`;
         })
         .catch(err => console.log(err))
 }
