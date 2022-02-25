@@ -9,7 +9,6 @@
 
 ### Доступ к серверу
 Telegram-bot: https://t.me/LgMonitorStatusBot
-In Progress...
 
 ### Развертывание проекта
 1. Установить `Node.js`
